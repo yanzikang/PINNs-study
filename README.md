@@ -351,9 +351,23 @@ Github链接：[2D 多域稳态热传导](https://github.com/yanzikang/2D-heat-t
 
 在论文中，**NTK分析**不仅为变量缩放技术提供了理论保障，还揭示了PINNs训练的深层机制（如梯度竞争问题），并通过调整NTK特征值分布证明了方法的有效性。这一分析框架为改进其他物理驱动机器学习模型提供了重要工具。
 
-
+上述是通过AI生成的，要我总结就一句话：通过调整梯度实现，各个损失之间的平衡
 
 代码实现：参考代码
+
+我没有能力自己实现[数学不太OK]，看到有的文章中使用了此代码这里贴出来文章的连接
+
+参考文章：**PINNsFormer: A Transformer-Based Framework For Physics-Informed Neural Networks**
+
+文章连接：[[2307.11833\] PINNsFormer: A Transformer-Based Framework For Physics-Informed Neural Networks](https://arxiv.org/abs/2307.11833)
+
+代码连接：[AdityaLab/pinnsformer](https://github.com/AdityaLab/pinnsformer)
+
+参考文章：**PINNacle: A Comprehensive Benchmark of Physics-Informed Neural Networks for Solving PDEs**
+
+文章连接：[[2306.08827\] PINNacle: A Comprehensive Benchmark of Physics-Informed Neural Networks for Solving PDEs](https://arxiv.org/abs/2306.08827)
+
+代码连接：
 
 ```python
 
@@ -461,7 +475,7 @@ min-max归一化：
 
 - [ ] 多元边界条件问题
 
-虽然名字叫做多元边界条件问题，实际上就是边界条件复杂问题，参考苏航老师团
+虽然名字叫做多元边界条件问题，实际上就是边界条件复杂问题，参考清华苏航老师团队的文章
 
 
 
@@ -471,6 +485,11 @@ min-max归一化：
 
 [thuml/Neural-Solver-Library: A Library for Advanced Neural PDE Solvers.](https://github.com/thuml/Neural-Solver-Library)
 
+推荐清华大学在PINNs方面工作的郝博士
+
+郝博士主页：[Zhongkai Hao (郝中楷) - Homepage](https://haozhongkai.github.io/)
+
 ### 阅读推荐（一些我读过的感觉比较有用的文章）
 
 PINNs综述：https://mp.weixin.qq.com/s/dpQlQUDAv3VoTjddLWAZLg
+

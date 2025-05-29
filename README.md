@@ -10,7 +10,7 @@
 
 - [x] 1.神经网络框架
 - [x] 2.用deepxde构建简单的PDE方程并形成案例
-- [ ] PINNs数学原理
+- [x] PINNs数学原理
 
 # 一、PINNs入门课
 
@@ -75,146 +75,19 @@ PINNs通过在损失函数中引入物理方程（如偏微分方程），使神
 
 由于后面的基础部分学习是基于清华大学的**PINNacle**开展的，所以有必要学习deepxde框架，常见的科学机器学习框架还有$JAX$等
 
-对于$JAX$库的学习以及在训练过程中肯能会遇到的问题可以参考这篇文章：[物理信息神经网络训练的专家指南（Part I）| An Expert’s Guide To Training PINNs](https://mp.weixin.qq.com/s/gCPJQGYiWaw2OsXzZ8RTPA)
+对于$JAX$库的学习以及在训练过程中肯能会遇到的问题可以参考这篇文章：
 
-deepxde参考文档：[DeepXDE — DeepXDE 1.13.3.dev9+g28cb8f0 documentation](https://deepxde.readthedocs.io/en/latest/)
+[物理信息神经网络训练的专家指南（Part I）| An Expert’s Guide To Training PINNs](https://mp.weixin.qq.com/s/gCPJQGYiWaw2OsXzZ8RTPA)
+
+deepxde参考文档：
+
+[DeepXDE — DeepXDE 1.13.3.dev9+g28cb8f0 documentation](https://deepxde.readthedocs.io/en/latest/)
 
 ##### 2.1 deepxde基础代码说明(常见代码说明)
 
-deepxde 常见代码：
+deepxde 常见代码：[yanzikang/deepxde-study: 用于学习deepxde](https://github.com/yanzikang/deepxde-study)
 
-**2.1.1 几何构造**
-
-- [ ] 基本几何构造
-
-```python
-# 导入dde
-import deepxde as dde
-# 1维区域
-dde.geometry.Interval(x_min, x_max)  # 例如定义[-1,1]区间：geom = dde.geometry.Interval(-1, 1)
-
-# 2维区域
-#矩形
-dde.geometry.Rectangle([x_min, y_min], [x_max, y_max])  # 如矩形域[-1,1]×[-1,1]
-# 圆形
-dde.geometry.Disk(center, radius)  # 例如中心在原点、半径为1的圆：dde.geometry.Disk([0,0], 1)
-# 椭圆、多边形、星形、三角形等(不太常用详情参考deepxde文档)
-
-# 三维区域
-# 长方形:xmin 左下角,xmax 右上角
-dde.geometry.Cuboid(xmin, xmax) # dde.geometry.Cuboid(xmin=[0, 0, 0], xmax=[1, 1, 1])
-# 球
-dde.geometry.Sphere(center, radius) # dde.geometry.Cuboid(center=[0, 0, 0], radius= 5)
-
-```
-
-- [ ] 几何运算
-
-```python
-# 几何运算
-# 并集:合并两个几何区域，常用于组合不规则形状：
-rect = dde.geometry.Rectangle([0,0], [2,1])
-disk = dde.geometry.Disk([2,0.5], 0.5)
-geom = dde.geometry.CSGUnion(rect, disk)  # 创建跑道形区域[1,4](@ref)
-# 差集：从一个几何体中挖去另一个区域，适用于孔洞结构：
-cube = dde.geometry.Cuboid([0,0,0], [1,1,1])
-sphere = dde.geometry.Sphere([0.5,0.5,0.5], 0.3)
-geom = dde.geometry.CSGDifference(cube, sphere)  # 立方体中挖去球体[5,6](@ref)
-# 保留重叠区域，用于构建复杂边界条件
-circle1 = dde.geometry.Disk([-1,0], 1.5)
-circle2 = dde.geometry.Disk([1,0], 1.5)
-lens = dde.geometry.CSGIntersection(circle1, circle2)  # 双凸透镜形状[1](@ref)
-```
-
-- [ ] 几何构造进阶(自定义几何)
-
-```python 
-# 先读球构造的源码
-```
-
-- [ ] 时间域(瞬态方程)以及时空域
-
-```python
-# 建立时空域
-timedomain = dde.geometry.TimeDomain(t0,t1)
-spatial_time_domain = dde.geometry.GeometryXTime(geom,timedomain)
-```
-
-2.1.2 边界条件以及初始条件设定
-
-```python
-# Dirichlet boundary conditions: y(x) = func(x).
-# 参数说明：spatial_time_domain 时空域；lambda x: 100 设定恒定温度为100，x为输入的值x[0]表示x轴
-# lambda x, on_boundary: on_boundary and  np.isclose(x[1], H/2) on_boundary是否在边界上，
-# np.isclose(x[1], H/2) 是否满足y=H/2 H为自定义矩形的高
-dde.icbc.DirichletBC(spatial_time_domain, 
-    lambda x: np.float64(100), 
-    lambda x, on_boundary: on_boundary and  np.isclose(x[1], H/2) 
-    )
-# Neumann boundary conditions: dy/dn(x) = func(x).
-dde.icbc.NeumannBC(
-        spatial_time_domain, # 区域
-        lambda x: 0, # func(x)
-        lambda x, on_boundary: on_boundary and np.isclose(x[0], -L/2) # 边界区域
-# Robin boundary conditions: dy/dn(x) = func(x, y).
-dde.icbc.RobinBC(
-        spatial_time_domain, 
-    	lambda _, T:(30 - T),  # func(x, y).
-        lambda x, on_boundary: on_boundary and disk.on_boundary(x[:2])
-
-# 初始条件 Initial conditions: y([x, t0]) = func([x, t0]).
-ic = dde.icbc.IC(
-    spatial_time_domain,
-    lambda x:0,
-    lambda _,on_initial:on_initial)
-```
-
-2.1.3 构建PDE方程以及数据集data
-
-```python
-# 
-def pde(x,y):
-    dy_t = dde.grad.jacobian(y,x,i=0,j=2)
-    dy_xx = dde.grad.hessian(y,x,i=0,j=0)
-    dy_yy = dde.grad.hessian(y,x,i=1,j=1)
-    return dy_t - alpha*(dy_xx + dy_yy)
-# 汇总边界条件
-ibcs = [bc_top,bc_bottom,bc_left,bc_right,ic]
-# 定义数据
-data = dde.data.TimePDE(
-    spatial_time_domain,
-    pde,
-    ibcs,
-    num_domain=8000,
-    num_boundary=320,
-    num_initial=800,
-    num_test=8000,
-)
-```
-
-2.1.4 训练技巧
-
-```python
-# 自适应采样
-resampler = dde.callbacks.PDEPointResampler(period=1000)  # 每1000步触发一次RAR
-model.train(iterations=10000, callbacks=[resampler])
-# 优化器组合策略
-model.compile("adam", lr=0.001)  
-model.train(epochs=5000)
-model.compile("L-BFGS")  # 切换优化器
-model.train()
-# 损失函数动态加权
-weights = [1e3, 1e3, 1]  # 分别为PDE、边界、初始条件权重
-model.compile(optimizer, loss_weights=weights)
-```
-
-2.1.5 设置网络
-
-```python
-net = dde.nn.FNN([2] + [20] * 3 + [1], "tanh", "Glorot normal")  # 输入维度2，输出维度1
-```
-
-由于使用deepxde当遇到比较复杂的问题时，可能需要重写封装代码，故我的建议是用pytorch 自己构建PINNs的代码
+由于使用deepxde当遇到比较复杂的问题时，可能需要重写封装代码，故我的建议是用pytorch 自己构建PINNs的代码，但缺点也非常的明显，许多的代码要自己去构建，同时会一定程度上增加代码的冗余性。
 
 ### 3.用pytorch+deepxde实现2D热传导问题
 
@@ -234,10 +107,21 @@ Github链接：[2D 多域稳态热传导](https://github.com/yanzikang/2D-heat-t
 
 - PDE理论基础
 - 自动微分原理
+- [AI与PDE（一）：PINNs模型的设计理念和我碰到的一些问题 - 知乎](https://zhuanlan.zhihu.com/p/411843646)
+
+### 4.PINNs学习过程中的难点
+
+- 收敛难，由于在训练的过程中可能会有多个损失项，这些损失项之间不平衡，导致损失降不下去
+
+- 收敛到了平凡解上去，举一个简单的例子
+
+  <img src="https://yzk-ahu-1330633968.cos.ap-guangzhou.myqcloud.com/imgs/image-20250522132053435.png" alt="image-20250522132053435" style="zoom:80%;" />
+
+对于上述方程来说，$u_{\theta}=0$ 明显是上述偏微分方程的解，但是很明显这是一个平凡解，像上述的情况，会导致训练误差非常的低，验证误差非常的高，上述的情况我们称之为**传播失败（Propagation failures）**
 
 # 第二周（5.12-5.19）学不完了
 
-- [ ] 神经正切核理论分析以及代码实现
+- [x] 神经正切核理论分析以及代码实现
 - [ ] 收敛性分析
 - [ ] 采样策略优化
 - [ ] 自适应权重方法
@@ -250,11 +134,35 @@ Github链接：[2D 多域稳态热传导](https://github.com/yanzikang/2D-heat-t
 
 目标：如果模型不收敛应该从哪些方面进行分析找原因
 
+**输入**：我目前主要遇到的问题就是输入，输入如果量级相差太大或者相差太小模型会识别不出输入，比如量级较小，那么模型非常有可能将输入都视为同样的一个值。
+
+**输出：**因为常用的损失是L2损失，所以输出的量级也会非常的影响结果，比如说直接设置边界上的条件为600℃，那么最初的损失会直接为600的平方（假设随机初始化后预测的温度为0℃左右）
+
+**损失**：损失下降不平衡也会导致收敛问题，也就是说，在实际过程中会使得PDE损失下降的非常快，而其他损失下降的非常的慢。这可能会导致模型优化到一个错误的解上去。对于这个解到错误解上的问题，我们称其为**传播错误**。首先最简单的解决方案是加权，我们后续学习的一项重点在于**自适应**，也就是将整个网络设置为动态的网络，一些策略的问题让网络自己去学习
+
 ### 2.采样策略优化                                                                                                                                                                                                                                                                                                                                                                       
 
 目标：采样对模型有什么影响？如何正确的进行采样
 
-### 3.自适应权重方法
+采样分为两点：1） 采样数量 ；2）采样的频率 （各个区域的采样频率）; 
+
+文章连接：
+
+[A comprehensive study of non-adaptive and residual-based adaptive sampling for physics-informed neural networks - ScienceDirect](https://www.sciencedirect.com/science/article/pii/S0045782522006260)
+
+文章带读连接：[PINN论文精读（8）：Adaptive Sampling for PINN - 知乎](https://zhuanlan.zhihu.com/p/671933907)
+
+代码连接：[lu-group/pinn-sampling: Non-adaptive and residual-based adaptive sampling for PINNs](https://github.com/lu-group/pinn-sampling)
+
+从文章中我们应该要知道俩个相关的信息：
+
+1.为什么会采样点的分布会导致出现上述问题
+
+2.作者提出的解决方案，是从什么角度解决的
+
+除了一般的采样算法之外，如随机采样，文中第一个提到的算法是**RAR-G**，这个采样策略是基于贪心算法，其实质是将残差值较大的采样点，保持不变，其他的点重新采样，这也就意味着
+
+### 3.动态权重策略
 
 作用：动态加权，实际上通过衡量loss的梯度的大小，进行加权，防止某一项下降的过快，或者过慢
 
@@ -264,94 +172,7 @@ Github链接：[2D 多域稳态热传导](https://github.com/yanzikang/2D-heat-t
 
 #### 1.神经切向核理论（NTK）【基于梯度的加权方式】
 
-在论文中提到的**NTK分析（Neural Tangent Kernel Analysis）**是一种基于神经网络训练动力学的理论分析工具，主要用于研究神经网络在参数初始化附近的训练行为，以及不同损失项的优化动态。以下是其核心概念和在论文中的具体应用解释：
-
-------
-
-**1. NTK（神经切向核）的基本概念**
-
-- **定义**：NTK是描述无限宽神经网络在梯度下降训练过程中参数演化规律的数学工具。它通过核函数（类似于支持向量机中的核）的形式，刻画了神经网络输出对输入的敏感性。
-
-- **关键性质：**
-
-​	在神经网络足够宽且使用随机初始化时，NTK在训练初期**保持近似不变**（尽管参数在更新）。
-
-​	NTK的特征值谱（Eigenvalue Spectrum）决定了不同方向的参数更新速度（大特征值对应快速收敛方向，小特征值对	应缓慢收敛方向）。
-
-------
-
-**2. 论文中的NTK分析目的**
-
-论文通过对PINNs（物理信息神经网络）进行NTK分析，主要解决以下问题：
-
-1. **训练动态不平衡**：
-   PINNs的损失函数通常包含多个竞争项（如PDE残差、边界条件、初始条件等），这些项的梯度量级差异会导致训练偏向某些项而忽略其他项。NTK分析可**量化各损失项的梯度贡献比例**。
-2. **变量缩放的理论支持**：
-   论文提出的变量缩放技术通过调整不同物理量的权重，改变了NTK的特征值分布。NTK分析证明了这种调整能：
-   - 平衡不同损失项的梯度量级（如防止PDE残差的梯度淹没边界条件）
-   - 改善优化过程的整体收敛性（通过调整特征值谱的分布）
-
-------
-
-**3. NTK分析在论文中的具体应用**
-
-**（1）揭示训练瓶颈**
-
-- **现象**：未缩放时，PINNs的训练可能因不同损失项的梯度量级差异而陷入局部最优。
-
-- NTK分析过程：
-
-  - 计算各损失项对应的NTK子矩阵（如PDE残差项的核$K_{PDE}$、边界条件项$K_{BC}$
-
-  - 比较它们的最大特征值$\lambda_{\max}$和特征值分布： 
-    $$
-    梯度主导项=arg⁡max⁡(λmax⁡(K_{PDE}),λmax⁡(K_{BC})
-    $$
-
-  - 发现：未缩放的PINNs中，PDE残差项的NTK特征值显著大于边界条件项，导致训练初期优先优化PDE残差，忽视边界条件。
-
-**（2）验证变量缩放的有效性**
-
-- **变量缩放操作**：对不同的物理变量（如位移$u$、温度$T$）施加缩放因子$\alpha_u, \alpha_T$，使其量级对齐。
-
-- NTK分析结论：
-
-  - 缩放后，各损失项的NTK矩阵被重新加权： 
-    $$
-    K_{\text{total}} = \alpha_{PDE}^2 K_{PDE} + \alpha_{BC}^2
-    $$
-
-  - 调整$\alpha$因子可**平衡各子矩阵的贡献**，使得最大特征值接近，避免单一损失项主导训练。
-
-  - 理论证明：存在一组最优的缩放因子$\{\alpha\}$，使得调整后的NTK特征值谱更均匀，从而提升收敛速度。
-
-------
-
-**4. NTK分析的实际意义**
-
-通过该分析，论文从理论上证明了：
-
-1. **变量缩放必要性**：
-   对于具有快速变化解（如高雷诺数流动）的PDE问题，未缩放的PINNs因NTK特征值差异过大会完全失败，而缩放后能恢复有效训练。
-2. **超参数设计指导**：
-   NTK特征值的计算为缩放因子的选择提供了理论依据（例如，根据特征值比例设置$α∝1$
-
-------
-
-**直观类比理解**
-
-将NTK分析类比为**调整不同乐器的音量平衡**：
-
-- **未缩放时**：某些乐器（如鼓）音量过大，掩盖其他乐器（如小提琴），导致音乐不和谐（训练偏向某些损失项）。
-- **缩放后**：通过调节音量旋钮（缩放因子$\alpha$），使所有乐器的音量均衡（梯度量级对齐），最终得到和谐乐曲（优化过程平衡收敛）。
-
-------
-
-**总结**
-
-在论文中，**NTK分析**不仅为变量缩放技术提供了理论保障，还揭示了PINNs训练的深层机制（如梯度竞争问题），并通过调整NTK特征值分布证明了方法的有效性。这一分析框架为改进其他物理驱动机器学习模型提供了重要工具。
-
-上述是通过AI生成的，要我总结就一句话：通过调整梯度实现，各个损失之间的平衡
+要我总结就一句话：通过调整梯度实现，各个损失之间的平衡
 
 代码实现：参考代码
 
@@ -367,7 +188,7 @@ Github链接：[2D 多域稳态热传导](https://github.com/yanzikang/2D-heat-t
 
 文章连接：[[2306.08827\] PINNacle: A Comprehensive Benchmark of Physics-Informed Neural Networks for Solving PDEs](https://arxiv.org/abs/2306.08827)
 
-代码连接：
+代码连接：[i207M/PINNacle: Codebase for PINNacle: A Comprehensive Benchmark of Physics-Informed Neural Networks for Solving PDEs.](https://github.com/i207M/PINNacle)
 
 ```python
 
@@ -411,7 +232,65 @@ min-max归一化：
 
 ![image-20250519161052188](https://yzk-ahu-1330633968.cos.ap-guangzhou.myqcloud.com/imgs/image-20250519161052188.png)
 
-# **三、PINNs前沿发展**
+### 5.硬约束策略
+
+对于一个比较复杂的网络可能存在多个边界条件，如果所有的边界条件都用网络进行训练，会出现冲突的情况，也就是说我们的损失项至少有：
+
+<img src="https://yzk-ahu-1330633968.cos.ap-guangzhou.myqcloud.com/imgs/image-20250522102850089.png" alt="image-20250522102850089" style="zoom:80%;" />
+
+其中$m_j$为各个损失边界损失项。N为其他的损失如PDE损失等。对于Neumann 边界条件和Robin边界条件，比较不好处理，如果想处理可以参考下面的文章，我的建议是对Dirichlet 边界条件进行硬约束：
+
+![image-20250522103239909](https://yzk-ahu-1330633968.cos.ap-guangzhou.myqcloud.com/imgs/image-20250522103239909.png)
+
+![image-20250522103305973](https://yzk-ahu-1330633968.cos.ap-guangzhou.myqcloud.com/imgs/image-20250522103305973.png)
+
+![image-20250522103316221](https://yzk-ahu-1330633968.cos.ap-guangzhou.myqcloud.com/imgs/image-20250522103316221.png)
+
+![image-20250522103324968](https://yzk-ahu-1330633968.cos.ap-guangzhou.myqcloud.com/imgs/image-20250522103324968.png)
+
+硬约束的作用以及进一步的学习可以参考这篇文章[2210.03526](https://arxiv.org/pdf/2210.03526)
+
+### 6.区域分解策略
+
+最为经典的文章为FBPINNs
+
+文章连接：[Finite basis physics-informed neural networks (FBPINNs): a scalable domain decomposition approach for solving differential equations | Advances in Computational Mathematics](https://link.springer.com/article/10.1007/s10444-023-10065-9)
+
+代码连接：[benmoseley/FBPINNs: Solve forward and inverse problems related to partial differential equations using finite basis physics-informed neural networks (FBPINNs)](https://github.com/benmoseley/FBPINNs)
+
+### 7.错误传播问题
+
+最近看了许多有关于**错误传播**的问题
+
+对于错误传播的问题的解决方案是出奇的一致，利用有限元的方法，用网格进行采样
+
+### **8.因果关系**
+
+有些文章讲了一个所谓的因果关系，最简单的因果关系，就是时序上的因果关系，也就是说拿前一个时刻的输出结果作为下一时刻的初始条件
+
+# **第三周（5.24-6.8）**
+
+- [ ] 多任务学习框架
+- [ ] PINNs逆问题求解示例
+- [ ] 将第二周没有搞完的东西搞完
+- [ ] 可能实现的创新点举例
+  - 自适应
+  - 元学习
+  - 多任务
+
+- [ ] 神经算子概述
+
+# 三、PINNs实际应用
+
+1.多任务学习框架调研
+
+2.PINNs求解逆问题示例
+
+# 四、初探神经算子
+
+神经算子概述
+
+# **PINNs前沿发展**
 
 这个先自己调研一下
 
@@ -423,7 +302,7 @@ min-max归一化：
 
 代码连接：[pratikrathore8/opt_for_pinns](https://github.com/pratikrathore8/opt_for_pinns)
 
-从本文中可以学习到一点，Adam+L-BFGS 在PINNs训练过程中的有效性，可以帮助我们进一步的提高训练的精度！
+从本文中可以学习到一点，Adam+L-BFGS 在PINNs训练过程中的有效性，可以帮助我们进一步的**提高训练的精度**！
 
 ### 文章2
 
@@ -433,7 +312,15 @@ min-max归一化：
 
 代码连接：[WooJin-Cho/Parameterized-Physics-informed-Neural-Networks](https://github.com/WooJin-Cho/Parameterized-Physics-informed-Neural-Networks)
 
-后续做多个介质的PINNs任务的时候可以参考，参数化的PINNs这个东西还是比较重要的
+后续做多个介质的PINNs任务的时候可以参考，**参数化PDE**这个东西还是比较重要的
+
+### 文章3
+
+**ProPINN: Demystifying Propagation Failures in Physics-Informed Neural Networks**
+
+文章连接：[[2502.00803\] ProPINN: Demystifying Propagation Failures in Physics-Informed Neural Networks](https://arxiv.org/abs/2502.00803)
+
+这篇文章在分析如何使用参考有限元的方法，解决**传播失败问题**
 
 # 现阶段学习内容
 
@@ -451,20 +338,50 @@ min-max归一化：
 
 #### 1.优化策略
 
-- [ ] 归一化策略，包括输入和输出
-- [ ] Adam+L-BFGS 优化器使用策略
+- [x] 归一化策略，包括输入和输出
+
+  结论：输入归一化非常必要，用了上面的类似于min-max的归一化策略将输入值规范在了[-1,1]之间，通过这样的操作可以有如下的优势：
+
+  - 训练过程中损失下降的更加的平滑
+  - 训练过程中最后的损失更加的小
+
+- [x] Adam+L-BFGS 优化器使用策略
+
+  结论：非常有效的一种优化器使用方法，可以更有效的帮助收敛
+
+  - Adam优化器是一阶优化器，可以帮助我们找到一个局部最优解的大致范围
+  - L-BFGS 是二阶优化器，可以帮助我们找到更精确的解
+  - [[2402.01868\] Challenges in Training PINNs: A Loss Landscape Perspective](https://arxiv.org/abs/2402.01868)
+
 - [ ] 自适应采样策略
+
+  先理解为什么要进行自适应的采样，在人为的设置采样部分，最后使用自适应采样
+
 - [ ] 动态学习率策略
+
 - [ ] 动态加权策略（神经正切核、config等都属于对于梯度的操作）
+
 - [ ] **硬约束策略**（这一点后续可能比较重要）
 
 #### 2.模型框架策略
 
-- [ ] MLP
+- [x] MLP
+
+  目前是将MLP作为我们的baseline去使用的，也是作为工程项目中最主要的网路框架
+
 - [ ] Transformer
+
 - [ ] KAN
+
 - [ ] LSTM
-- [ ] Mamba(这个是基于transformer的设想，这个做出来就是一个创新点)
+
+- [ ] Mamba (这个是基于transformer的设想，这个做出来就是一个创新点) ==这个一定要做出来==
+
+- [ ] 自适应的激活函数
+
+相关框架可以有一个新的参考文章：
+
+文章连接：[2502.00803](https://arxiv.org/pdf/2502.00803)
 
 #### 3.后续尝试的工作
 
@@ -477,7 +394,11 @@ min-max归一化：
 
 虽然名字叫做多元边界条件问题，实际上就是边界条件复杂问题，参考清华苏航老师团队的文章
 
+#### 4.其他问题
 
+- [ ] 加入初始条件应该是非常有必要的，但是在实践的时候却发现了一个比较大的问题，**加入初始条件没有什么效果**，按道理说我把初始条件加入到模型中去的话，应该在1s的时候损失是比较低的，这是一定的，但是实际上并不是在加入init_loss之后并没有将损失降低非常低，他依旧是最高的，进行了消融实验，**将初始条件作为消融的项目**，发现，初始条件几乎没有发挥作用，这是为什么？
+- [ ] 现在的问题是我要设置一个共享的层，之前的想法都是每个层训练自己的，各个层之间的底层逻辑是相同的，现在我要将三个层之间加一个共享的层，同时保留各个层自己的特色，应该如何实现？
+- [ ] 基于图结构的思想，我一直搞不明白一个问题，就是说网格化和非网格化的优势和劣势，也就是说如果有规则的网格我就可以用卷积等现有的视觉上面的方法进行处理，但是非网格化的数据就没有这个优势了，但是网格化的时候有两个问题，一就是网格区域的规则问题，规则网格体现不出来尺度信息，比如湍流在涡旋出是高信息量的，其他区域是低信息量的，那么对于这个问题，在有限元方法中采用的是划分不同粒度的网格，但是这会导致无法进行有效的卷积。二传统的PINNs算法会有没有**位置信息**的问题，或者说压根就不关注位置信息，因为是随机采样点，由于是随机采样，就是让网络去拟合函数，那么随机性就比较大，**有没有什么基于特征的信息，具有一些指导价值，这是值得考虑的点。**
 
 # 其他
 
@@ -493,3 +414,18 @@ min-max归一化：
 
 PINNs综述：https://mp.weixin.qq.com/s/dpQlQUDAv3VoTjddLWAZLg
 
+### 还没看但是准备看的文章
+
+1.[Respecting causality for training physics-informed neural networks - ScienceDirect](https://www.sciencedirect.com/science/article/pii/S0045782524000690)
+
+这篇文章说的是与时间相关的因果PINNs，应该是考虑了不同时间步之间的关系吧.
+
+### 如何寻找相关论文文献
+
+我其实不是非常建议从顶会顶刊上直接找文章，虽然说文章的质量高，但是许多都是从数学分析的角度去工作的，阅读难度大不说，而且对我的实际作用也非常的小，我觉得找一写基础的问题，一些能直接套用的问题，可能对于解决工程上的问题更有帮助。
+
+我觉得从**公众号**，或者**期刊**，**会议**上找文章是可以的。但是，实际上最好的方法我觉得是**通过文章去搜索文章**，即找该文章所**引用的文章**。特别是大佬写的文章，一般应用的都是高质量的文章。
+
+### PINNs自我baseline构建
+
+构建一个属于自己的，自己完全清楚的baseline
